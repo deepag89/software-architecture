@@ -1,0 +1,10 @@
+
+
+Practice Desing Peer to peer Interviews
+- https://www.pramp.com
+
+Grokking OOPS interview
+- https://www.educative.io/collection/5668639101419520/5692201761767424
+
+System design primer
+- https://github.com/donnemartin/system-design-primer
