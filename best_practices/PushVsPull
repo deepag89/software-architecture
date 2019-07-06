@@ -1,0 +1,6 @@
+Use Push when:
+- Messages are infrequent. Because doing pull in this situation will only cause consumers to keep polling unnecssarily, resulting in higher network/memory usage.
+
+
+Use Pull when:
+- Consumer wants to control the rate at which data can be consumed. If we use push instead, the producer will control it and consumer may NOT be able to consume it at it's own rate.
