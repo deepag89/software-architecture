@@ -1,0 +1,81 @@
+For supporting pagination
+
+https://engineering.mixmax.com/blog/api-paging-built-the-right-way/
+
+In the link above, the last code should be changed to following:
+
+    const [nextLaunchDate, nextId] = req.query.next.split(‘_’);
+    const items = db.items.find({
+      $or: [{
+        launchDate: { $lt: nextLaunchDate }
+      }, {
+        // If the launchDate is an exact match, we need a tiebreaker, so we use the _id field from the cursor.
+        launchDate: nextLaunchDate,
+      _id: { $lt: nextId }
+      }]
+    }).sort({
+    ######################################## Change ########################################
+        launchDate: -1,
+    ######################################## Change ########################################
+       _id: -1
+    }).limit(2);
+
+    const lastItem = items[items.length - 1];
+    // The cursor is a concatenation of the two cursor fields, since both are needed to satisfy the requirements of being a cursor field
+    const next = `${lastItem.launchDate}_${lastItem._id}`;
+    res.json({ items, next });
+
+
+The corresponding postgres query might look like below. Note that the id and launchDate field only need to satisfy these properties:
+Unique, immutable, orderable
+But it is NOT necessary that id/launchDate are ever increasing/decreasing sequence. The queries will work even if id is random such as uuid.
+
+Although not required, it would increase the performance if the primary key is used as default sort key as the db is sorted as per primary key and data locality will
+be good for performance.
+
+The pagination implemented as such guarantee that one item will be returned exactly once. If some new items are added while pagination is in process,
+it might happen that some of the new items are returned (if they got added in the partition yet to be traversed) and others are NOT returned (if
+they got added in the partition already traversed).
+
+(The default sort field is id)
+Api: curl https://api.mixmax.com/items?limit=2
+Query: select * from items
+    order by id desc
+    limit 2
+
+(The default sort field is id)
+Api: curl https://api.mixmax.com/items?limit=2&next=590e9abd4abbf1165862d342
+nextIdToken=590e9abd4abbf1165862d342
+Query: select * from items
+    where id < nextIdToken
+    order by id desc
+    limit 2
+
+(Custom sort field: launchDate)
+Api: curl https://api.mixmax.com/items?limit=2&sort=launchDate
+Query: select * from items
+    order by launchDate desc
+    limit 2
+
+(Custom sort field: launchDate)
+Api: curl https://api.mixmax.com/items?limit=2&sort=launchDate&next=2017-09-11T00%3A44%3A54.036Z
+nextLaunchDateToken=2017-09-11T00%3A44%3A54.036Z
+Query: select * from items
+    where launchDate < nextLaunchDateToken
+    order by launchDate desc
+    limit 2
+
+(Custom sort field: launchDate. Internally: launchDate,id )
+Api: curl https://api.mixmax.com/items?limit=2&sort=launchDate
+Query: select * from items
+    order by launchDate desc, id desc
+    limit 2
+
+(Custom sort field: launchDate, Internally: launchDate,id )
+Api: curl https://api.mixmax.com/items?limit=2&sort=launchDate&next=2017-09-11T00%3A44%3A54.036Z_590e9abd4abbf1165862d342
+nextLaunchDateToken=2017-09-11T00%3A44%3A54.036Z, nextIdToken=590e9abd4abbf1165862d342
+Query: select * from items
+    where launchDate < nextLaunchDateToken
+    OR (launchDate = nextLaunchDateToken AND id < nextIdToken)
+    order by launchDate desc, id desc
+    limit 2
