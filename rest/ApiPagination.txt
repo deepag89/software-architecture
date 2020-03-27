@@ -1,4 +1,4 @@
-For supporting pagination
+For supporting Rest Api backend pagination
 
 https://engineering.mixmax.com/blog/api-paging-built-the-right-way/
 
@@ -37,11 +37,13 @@ The pagination implemented as such guarantee that one item will be returned exac
 it might happen that some of the new items are returned (if they got added in the partition yet to be traversed) and others are NOT returned (if
 they got added in the partition already traversed).
 
+We can change the queries slightly to fetch limit+1 records from db internally -- send limit records to client, and use limit+1th record for next token.
+
 (The default sort field is id)
 Api: curl https://api.mixmax.com/items?limit=2
 Query: select * from items
     order by id desc
-    limit 2
+    limit 2 + 1
 
 (The default sort field is id)
 Api: curl https://api.mixmax.com/items?limit=2&next=590e9abd4abbf1165862d342
@@ -49,13 +51,13 @@ nextIdToken=590e9abd4abbf1165862d342
 Query: select * from items
     where id < nextIdToken
     order by id desc
-    limit 2
+    limit 2 + 1
 
 (Custom sort field: launchDate)
 Api: curl https://api.mixmax.com/items?limit=2&sort=launchDate
 Query: select * from items
     order by launchDate desc
-    limit 2
+    limit 2 + 1
 
 (Custom sort field: launchDate)
 Api: curl https://api.mixmax.com/items?limit=2&sort=launchDate&next=2017-09-11T00%3A44%3A54.036Z
@@ -63,13 +65,13 @@ nextLaunchDateToken=2017-09-11T00%3A44%3A54.036Z
 Query: select * from items
     where launchDate < nextLaunchDateToken
     order by launchDate desc
-    limit 2
+    limit 2 + 1
 
 (Custom sort field: launchDate. Internally: launchDate,id )
 Api: curl https://api.mixmax.com/items?limit=2&sort=launchDate
 Query: select * from items
     order by launchDate desc, id desc
-    limit 2
+    limit 2 + 1
 
 (Custom sort field: launchDate, Internally: launchDate,id )
 Api: curl https://api.mixmax.com/items?limit=2&sort=launchDate&next=2017-09-11T00%3A44%3A54.036Z_590e9abd4abbf1165862d342
@@ -78,4 +80,8 @@ Query: select * from items
     where launchDate < nextLaunchDateToken
     OR (launchDate = nextLaunchDateToken AND id < nextIdToken)
     order by launchDate desc, id desc
-    limit 2
+    limit 2 + 1
+
+
+Other Resources:
+    https://slack.engineering/evolving-api-pagination-at-slack-1c1f644f8e12
