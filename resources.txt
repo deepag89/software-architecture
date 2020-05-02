@@ -1,4 +1,6 @@
 
+Standard architecture patterns
+- https://docs.microsoft.com/en-us/azure/architecture/patterns/
 
 Practice Desing Peer to peer Interviews
 - https://www.pramp.com
